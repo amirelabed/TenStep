@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+
+
 import tn.tenstep.project.model.Question;
 import tn.tenstep.project.model.Reply;
 
@@ -25,7 +27,7 @@ public class TenStepRestController
     private AdminRepository adminRepository;
 
     @Autowired
-    private FormateurRepository formateurRepository;
+    private FormateurRepository instructorRepository;
 
     @Autowired
     private SessionRepository sessionRepository;
@@ -54,10 +56,10 @@ public class TenStepRestController
         return userRepository.findAll();
     }
 
-    @GetMapping(value = "/admin/formateur/all-formateurs")
+    @GetMapping(value = "/admin/instructor/all-instructors")
     public List<Formateur> getAllInstructors()
     {
-        return formateurRepository.findAll();
+        return instructorRepository.findAll();
     }
 
     @GetMapping(value = "/admin/session/all-sessions")
@@ -174,7 +176,20 @@ public class TenStepRestController
         }
     }
 
-    
+    @GetMapping(value = "course/update/enrolls/{id}")
+    public String updateEnrolls(@PathVariable Integer id)
+    {
+        Course edit_course = courseRepository.findCourseByCourseid(id);
+        try {
+            int x = Integer.parseInt(edit_course.getEnrolls()) + 1;
+            edit_course.setEnrolls(Integer.toString(x));
+            courseRepository.save(edit_course);
+            return "Enrolls updated successfully";
+        }
+        catch (Exception e) {
+            return "Enrolls not updated!";
+        }
+    }
 
     //User
     @GetMapping(value = "/user/get-user/{username}")
@@ -207,7 +222,18 @@ public class TenStepRestController
         }
     }
 
+    @PostMapping(value = "/user/update/payment")
+    public User updatePayment(@RequestBody User user)
+    {
+        User edit_user = userRepository.findUserByUserid(user.getUserid());
+        edit_user.setEnrolled_courses(user.getEnrolled_courses());
+        edit_user.setPayment_details(user.getPayment_details());
+        userRepository.save(edit_user);
+        return userRepository.findUserByUserid(user.getUserid());
+    }
+
     
+
     
 
     @PostMapping(value = "/user/update/password")
@@ -246,83 +272,137 @@ public class TenStepRestController
         }
     }
 
-    //Formateur
-    @GetMapping(value = "/formateur/{username}")
+    //Instructor
+    @GetMapping(value = "/instructor/{username}")
     public Formateur getInstructor(@PathVariable String username)
     {
-        return formateurRepository.findInstructorByUsername(username);
+        return instructorRepository.findInstructorByUsername(username);
     }
 
     @Transactional
-    @DeleteMapping(value = "/formateur/delete-formateur/{username}")
+    @DeleteMapping(value = "/instructor/delete-instructor/{username}")
     public String deleteInstructor(@PathVariable String username)
     {
-        if(formateurRepository.existsInstructorByUsername(username)) {
-        	formateurRepository.removeInstructorByUsername(username);
-            return "formateur Account Removed Successfully";
+        if(instructorRepository.existsInstructorByUsername(username)) {
+            instructorRepository.removeInstructorByUsername(username);
+            return "Instructor Account Removed Successfully";
         }
         else {
-            return "formateur Account not found!";
+            return "Instructor Account not found!";
         }
     }
 
-    @PostMapping(value = "/common/add-formateur")
+    @PostMapping(value = "/common/add-instructor")
     public String addInstructor(@RequestBody Formateur instructor)
     {
         String instructor_username = instructor.getUsername();
         String instructor_email =  instructor.getEmail();
-        if(formateurRepository.existsInstructorByUsername(instructor_username))
+        if(instructorRepository.existsInstructorByUsername(instructor_username))
         {
-            return "formateur Username already exists";
+            return "Instructor Username already exists";
         }
-        else if(formateurRepository.existsInstructorByEmail(instructor_email))
+        else if(instructorRepository.existsInstructorByEmail(instructor_email))
         {
-            return "formateur Email already exists";
+            return "Instructor Email already exists";
         }
         else {
-        	formateurRepository.save(instructor);
+            instructorRepository.save(instructor);
             return instructor_username + " Account added Successfully";
         }
     }
 
-    @PostMapping(value = "/formateur/update/profile")
+    @PostMapping(value = "/instructor/update/profile")
     public Formateur updateInstructorProfile(@RequestBody Formateur instructor)
     {
-        Formateur edit_instructor = formateurRepository.findInstructorByUsername(instructor.getUsername());
+    	Formateur edit_instructor = instructorRepository.findInstructorByUsername(instructor.getUsername());
         edit_instructor.setFullname(instructor.getFullname());
         edit_instructor.setUsername(instructor.getUsername());
         edit_instructor.setEmail(instructor.getEmail());
         edit_instructor.setMobile(instructor.getMobile());
         edit_instructor.setQualification(instructor.getQualification());
-        formateurRepository.save(edit_instructor);
-        return formateurRepository.findInstructorByUsername(instructor.getUsername());
+        instructorRepository.save(edit_instructor);
+        return instructorRepository.findInstructorByUsername(instructor.getUsername());
     }
 
-    @PostMapping(value = "/formateur/update/password")
+    @PostMapping(value = "/instructor/update/password")
     public Formateur updateInstructorPassword(@RequestBody Formateur instructor)
     {
-        Formateur edit_instructor = formateurRepository.findInstructorByUsername(instructor.getUsername());
+    	Formateur edit_instructor = instructorRepository.findInstructorByUsername(instructor.getUsername());
         edit_instructor.setPassword(instructor.getPassword());
-        formateurRepository.save(edit_instructor);
-        return formateurRepository.findInstructorByUsername(instructor.getUsername());
+        instructorRepository.save(edit_instructor);
+        return instructorRepository.findInstructorByUsername(instructor.getUsername());
     }
 
-    @GetMapping(value = "/formateur//update/course/{username}/{course_code}/{id}")
+    @GetMapping(value = "/instructor//update/course/{username}/{course_code}/{id}")
     public Formateur updateInstructorCourse(@PathVariable String username, @PathVariable String course_code, @PathVariable Integer id)
     {
         try {
-            Formateur edit_instructor = formateurRepository.findInstructorByUsername(username);
+        	Formateur edit_instructor = instructorRepository.findInstructorByUsername(username);
             edit_instructor.setCourses(edit_instructor.getCourses().concat(course_code + "#" + id + ","));
-            formateurRepository.save(edit_instructor);
-            return formateurRepository.findInstructorByUsername(username);
+            instructorRepository.save(edit_instructor);
+            return instructorRepository.findInstructorByUsername(username);
         }
         catch (Exception e)
         {
             return null;
         }
     }
-    
-  //Question
+
+    //Session
+    @GetMapping(value = "/session/{id}")
+    public Session getSession(@PathVariable Integer id)
+    {
+        return sessionRepository.findSessionBySessionid(id);
+    }
+
+    @PostMapping(value = "/session/add-session")
+    public Session addSession(@RequestBody Session session)
+    {
+        try {
+            sessionRepository.save(session);
+            return sessionRepository.findSessionByUsernameAndTypeAndIntimeAndOutTimeEquals(session.getUsername()
+                    , session.getType(), session.getIntime(), "active");
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
+    }
+
+    @PostMapping(value = "/session/update")
+    public String updateSession(@RequestBody Session session)
+    {
+        try {
+            if (sessionRepository.existsSessionBySessionid(session.getSessionid())) {
+                Session current_session = sessionRepository.findSessionBySessionid(session.getSessionid());
+                String x = session.getOutTime();
+                current_session.setOutTime(x);
+                sessionRepository.save(current_session);
+                return "Session Updated Successfully";
+            } else {
+                return "Session Not Found";
+            }
+        }
+        catch (Exception e)
+        {
+            return "Error! Session not updated";
+        }
+    }
+
+    @Transactional
+    @DeleteMapping(value = "/session/delete-session/{id}")
+    public String deleteSession(@PathVariable Integer id)
+    {
+        if(sessionRepository.existsSessionBySessionid(id)) {
+            sessionRepository.removeSessionBySessionid(id);
+            return "Session Removed Successfully";
+        }
+        else {
+            return "Session not found!";
+        }
+    }
+
+    //Question
     @GetMapping(value = "/forum/all-questions")
     public List<Question> getAllQuestions()
     {
@@ -349,7 +429,4 @@ public class TenStepRestController
         replyRepository.save(reply);
         return replyRepository.findReplyByRepliedbyAndQidAndTimestamp(reply.getRepliedby(),reply.getQid(),reply.getTimestamp());
     }
-
-
-   
 }
